@@ -9,13 +9,13 @@ public class StatsPrinter {
 	static double totalPPP = 0;
 	static double totalOER = 0;
 	
-    public static void printPlayerStats(String playerName, Map<String, List<Map<String, List<Map<String, String>>>>> mainMap) {
-        boolean playerFound = false;
+    public static void printPlayerStats(String playerName, Map<String, List<Map<String, List<Map<String, String>>>>> mainMap, int start, int end, boolean printAll, boolean POTR) {
+
 
         // Initialize sums for each statistic
         int totalPTS = 0, totalREB = 0, totalAST = 0, totalBLK = 0, totalSTL = 0, totalTO = 0,
             totalFGM = 0, totalFGA = 0, total3PTM = 0, total3PTA = 0, totalFTM = 0, totalFTA = 0,
-            totalOR = 0, totalFLS = 0, totalPlusMinus = 0, totalPOG = 0, totalMIN = 0, totalPRF = 0, totalDNK = 0;
+            totalOREB = 0, totalDREB = 0,totalFLS = 0, totalPlusMinus = 0, totalPOG = 0, totalMIN = 0, totalPRF = 0, totalDNK = 0;
         double totalFPTS = 0;
         int totalGames = 0;
         int i = 0;
@@ -32,22 +32,25 @@ public class StatsPrinter {
                     
                     // Check if the current player name matches the input playerName
                     if (currentPlayerName.toLowerCase().equals(playerName.toLowerCase())) {
-                        playerFound = true;
                         teamName = entry.getKey(); // Get the name of the team
                         playerName = currentPlayerName;
                         List<Map<String, String>> sheetRows = sheetEntry.getValue();
 
                         // Print player's stats
-                        System.out.print("Player: " + currentPlayerName);
-                        System.out.print("\t\t\t\t\t" + teamName + "\n"); // Print the team name
+                        if (!POTR) {
+                            System.out.print("Player: " + currentPlayerName);
+                            System.out.print("\t\t\t\t\t" + teamName + "\n"); // Print the team name	
+                            System.out.println("Games\tMIN\tPTS\tREB\tAST\tBLK\tSTL\tTO\tFGM\tFGA\t3PTM\t3PTA\tFTM\tFTA\tOREB\tDREB\tFLS\t+/-\tFG%\t3PT%\tFT%\tPRF\tDNK\tFPTS\tGS\tPOG");
 
-                        System.out.println("Games\tPTS\tREB\tAST\tBLK\tSTL\tTO\tFGM\tFGA\t3PTM\t3PTA\tFTM\tFTA\tOR\tFLS\t+/-\tFG%\t3PT%\tFT%\tMIN\tPRF\tDNK\tFPTS\tGS\tPOG");
-                        
+                        }
+
+
+                                                
                         // Iterate over each row of stats
                         for (Map<String, String> dataMap : sheetRows) {
                             // Update sums
                         	
-//                        	if (i >= 10) {
+                        	if ((i < end && i >= start && !printAll) || printAll) {
                         		totalPTS += Integer.parseInt(dataMap.get("PTS"));
                                 totalREB += Integer.parseInt(dataMap.get("REB"));
                                 totalAST += Integer.parseInt(dataMap.get("AST"));
@@ -60,7 +63,8 @@ public class StatsPrinter {
                                 total3PTA += Integer.parseInt(dataMap.get("3PTA"));
                                 totalFTM += Integer.parseInt(dataMap.get("FTM"));
                                 totalFTA += Integer.parseInt(dataMap.get("FTA"));
-                                totalOR += Integer.parseInt(dataMap.get("OR"));
+                                totalOREB += Integer.parseInt(dataMap.get("OR"));
+                                totalDREB += Integer.parseInt(dataMap.get("REB")) - Integer.parseInt(dataMap.get("OR"));
                                 totalFLS += Integer.parseInt(dataMap.get("FLS"));
                                 totalPlusMinus += Integer.parseInt(dataMap.get("+/-"));
                                 totalMIN += Integer.parseInt(dataMap.get("MIN"));
@@ -72,40 +76,43 @@ public class StatsPrinter {
                                 // Print individual stats
                                 
                                 
+                                if (!POTR) {
+                                	System.out.print(dataMap.get("Games") + "\t");
+                                    System.out.print(dataMap.get("MIN") + "\t");
+                                    System.out.print(dataMap.get("PTS") + "\t");
+                                    System.out.print(dataMap.get("REB") + "\t");
+                                    System.out.print(dataMap.get("AST") + "\t");
+                                    System.out.print(dataMap.get("BLK") + "\t");
+                                    System.out.print(dataMap.get("STL") + "\t");
+                                    System.out.print(dataMap.get("TO") + "\t");
+                                    System.out.print(dataMap.get("FGM") + "\t");
+                                    System.out.print(dataMap.get("FGA") + "\t");
+                                    System.out.print(dataMap.get("3PTM") + "\t");
+                                    System.out.print(dataMap.get("3PTA") + "\t");
+                                    System.out.print(dataMap.get("FTM") + "\t");
+                                    System.out.print(dataMap.get("FTA") + "\t");
+                                    System.out.print(dataMap.get("OR") + "\t");
+                                    System.out.print(Integer.parseInt(dataMap.get("REB")) - Integer.parseInt(dataMap.get("OR")) + "\t");
+                                    System.out.print(dataMap.get("FLS") + "\t");
+                                    System.out.print((Integer.parseInt(dataMap.get("+/-")) >= 0 ? "+" : "") + dataMap.get("+/-") + "\t");
+                                    System.out.print(dataMap.get("FG%") + "\t");
+                                    System.out.print(dataMap.get("3PT%") + "\t");
+                                    System.out.print(dataMap.get("FT%") + "\t");
+                                    System.out.print(dataMap.get("PRF") + "\t");
+                                    System.out.print(dataMap.get("DNK") + "\t");
+                                    System.out.print(dataMap.get("FPTS") + "\t");
+                                    System.out.print(dataMap.get("GS") + "\t");
+                                    if (Integer.parseInt(dataMap.get("POG")) != 0){
+                                    	System.out.println(dataMap.get("POG"));
+                                    }
+                                    else {
+                                    	System.out.println("");
+                                    }
+                                }
                                 
-                                System.out.print(dataMap.get("Games") + "\t");
-                                System.out.print(dataMap.get("PTS") + "\t");
-                                System.out.print(dataMap.get("REB") + "\t");
-                                System.out.print(dataMap.get("AST") + "\t");
-                                System.out.print(dataMap.get("BLK") + "\t");
-                                System.out.print(dataMap.get("STL") + "\t");
-                                System.out.print(dataMap.get("TO") + "\t");
-                                System.out.print(dataMap.get("FGM") + "\t");
-                                System.out.print(dataMap.get("FGA") + "\t");
-                                System.out.print(dataMap.get("3PTM") + "\t");
-                                System.out.print(dataMap.get("3PTA") + "\t");
-                                System.out.print(dataMap.get("FTM") + "\t");
-                                System.out.print(dataMap.get("FTA") + "\t");
-                                System.out.print(dataMap.get("OR") + "\t");
-                                System.out.print(dataMap.get("FLS") + "\t");
-                                System.out.print(dataMap.get("+/-") + "\t");
-                                System.out.print(dataMap.get("FG%") + "\t");
-                                System.out.print(dataMap.get("3PT%") + "\t");
-                                System.out.print(dataMap.get("FT%") + "\t");
-                                System.out.print(dataMap.get("MIN") + "\t");
-                                System.out.print(dataMap.get("PRF") + "\t");
-                                System.out.print(dataMap.get("DNK") + "\t");
-                                System.out.print(dataMap.get("FPTS") + "\t");
-                                System.out.print(dataMap.get("GS") + "\t");
-                                if (Integer.parseInt(dataMap.get("POG")) != 0){
-                                	System.out.println(dataMap.get("POG"));
-                                }
-                                else {
-                                	System.out.println("");
-                                }
                                 totalGames++;
-//                        	}
-                        	i++;
+                        	}
+                                i++;
                             
                         }
                     }
@@ -113,13 +120,6 @@ public class StatsPrinter {
             }
         }
         
-        
-        
-
-        
-        
-        
-        if (playerFound) {
 
             // Calculate averages
             DecimalFormat decimalFormat = new DecimalFormat("#0.0");
@@ -135,7 +135,8 @@ public class StatsPrinter {
             double avg3PTA = Double.parseDouble(decimalFormat.format((double) total3PTA / totalGames));
             double avgFTM = Double.parseDouble(decimalFormat.format((double) totalFTM / totalGames));
             double avgFTA = Double.parseDouble(decimalFormat.format((double) totalFTA / totalGames));
-            double avgOR = Double.parseDouble(decimalFormat.format((double) totalOR / totalGames));
+            double avgOREB = Double.parseDouble(decimalFormat.format((double) totalOREB / totalGames));
+            double avgDREB = Double.parseDouble(decimalFormat.format((double) totalDREB / totalGames));
             double avgFLS = Double.parseDouble(decimalFormat.format((double) totalFLS / totalGames));
             double avgPlusMinus = Double.parseDouble(decimalFormat.format((double) totalPlusMinus / totalGames));
             double avgMIN = Double.parseDouble(decimalFormat.format((double)totalMIN / totalGames));
@@ -147,37 +148,105 @@ public class StatsPrinter {
             double avg3PTPercentage = (double) total3PTM / total3PTA;
             double avgFTPercentage = (double) totalFTM / totalFTA;
             
-            double avgGS = Double.parseDouble(decimalFormat.format((double)(totalPTS+0.4*totalFGM-0.7*totalFGA-0.4*(totalFTA-totalFTM)+0.7*totalOR+0.3*(totalREB-totalOR)+totalSTL+totalAST*0.7+0.7*totalBLK-0.4*totalFLS-totalTO)/totalGames));
+            double avgGS = Double.parseDouble(decimalFormat.format((double)(totalPTS+0.4*totalFGM-0.7*totalFGA-0.4*(totalFTA-totalFTM)+0.7*totalOREB+0.3*(totalREB-totalOREB)+totalSTL+totalAST*0.7+0.7*totalBLK-0.4*totalFLS-totalTO)/totalGames));
 
-            System.out.println("AVG\t" + avgPTS + "\t" + avgREB + "\t" + avgAST + "\t" + avgBLK + "\t" + avgSTL + "\t" +
+            System.out.println("AVG\t" + avgMIN + "\t" + avgPTS + "\t" + avgREB + "\t" + avgAST + "\t" + avgBLK + "\t" + avgSTL + "\t" +
                     avgTO + "\t" + avgFGM + "\t" + avgFGA + "\t" + avg3PTM + "\t" + avg3PTA + "\t" + avgFTM + "\t" +
-                    avgFTA + "\t" + avgOR + "\t" + avgFLS + "\t" + avgPlusMinus + "\t\t\t\t" + avgMIN + "\t" +
+                    avgFTA + "\t" + avgOREB + "\t" + avgDREB + "\t" + avgFLS + "\t" + (avgPlusMinus >= 0 ? "+" : "") + avgPlusMinus + "\t\t\t\t"  +
                     avgPRF + "\t" + avgDNK + "\t" + avgFPTS);
             
             // Print sums and averages
             
-            System.out.println("\tPTS\tREB\tAST\tBLK\tSTL\tTO\tFGM\tFGA\t3PTM\t3PTA\tFTM\tFTA\tOR\tFLS\t+/-\tFG%\t3PT%\tFT%\tMIN\tPRF\tDNK\tFPTS\tGS\tPOG\tPER");
+            System.out.println("\tMIN\tPTS\tREB\tAST\tBLK\tSTL\tTO\tFGM\tFGA\t3PTM\t3PTA\tFTM\tFTA\tOREB\tDREB\tFLS\t+/-\tFG%\t3PT%\tFT%\tPRF\tDNK\tFPTS\tGS\tPOG");
 
-            System.out.println("TOTAL\t" + totalPTS + "\t" + totalREB + "\t" + totalAST + "\t" + totalBLK + "\t" +
+            System.out.println("TOTAL\t" + totalMIN + "\t" +  totalPTS + "\t" + totalREB + "\t" + totalAST + "\t" + totalBLK + "\t" +
                     totalSTL + "\t" + totalTO + "\t" + totalFGM + "\t" + totalFGA + "\t" + total3PTM + "\t" +
-                    total3PTA + "\t" + totalFTM + "\t" + totalFTA + "\t" + totalOR + "\t" + totalFLS + "\t" +
+                    total3PTA + "\t" + totalFTM + "\t" + totalFTA + "\t" + totalOREB +"\t" + totalDREB +  "\t" + totalFLS + "\t" +
                     totalPlusMinus + "\t" + new DecimalFormat("#0.0%").format(avgFGPercentage) + "\t" + 
                     new DecimalFormat("#0.0%").format(avg3PTPercentage) + "\t"  + new DecimalFormat("#0.0%").format(avgFTPercentage) + "\t" +  
-                    totalMIN + "\t" + totalPRF + "\t" + totalDNK + "\t"  +
-                    new DecimalFormat("#0.0").format(totalFPTS) + "\t" + avgGS + "\t" + totalPOG + "\t" + new DecimalFormat("0.00").format(RankAnalyzer.totalPlayerPERMap.get(playerName)));
+                     + totalPRF + "\t" + totalDNK + "\t"  +
+                    new DecimalFormat("#0.0").format(totalFPTS) + "\t" + avgGS + "\t" + totalPOG);
 
             System.out.println("");
-            System.out.println("\tPTS\tREB\tAST\tBLK\tSTL\tTO\tFGM\tFGA\t3PTM\t3PTA\tFTM\tFTA\tOR\tFLS\t+/-\tFG%\t3PT%\tFT%\tMIN\tPRF\tDNK\tFPTS\tGS\tPOG\tPER");
-            RankAnalyzer.printPlayerRankings(playerName);
             
+            if (!POTR) {
+            	System.out.println("\tMIN\tPTS\tREB\tAST\tBLK\tSTL\tTO\tFGM\tFGA\t3PTM\t3PTA\tFTM\tFTA\tOREB\tDREB\tFLS\t+/-\tFG%\t3PT%\tFT%\tPRF\tDNK\tFPTS\tGS\tPOG");
+            	RankAnalyzer.printPlayerRankings(playerName);
+                
 
-            System.out.println("Total POGs: " + totalPOG);     
+                System.out.println("\nTotal POGs:\t" + totalPOG + "\t" +  RankAnalyzer.printPlayerRatings(playerName,"POG",true));  
+                System.out.println(
+                		"PER:\t\t"+ new DecimalFormat("0.00").format(RankAnalyzer.totalPlayerPERMap.get(playerName))  + "\t" +  RankAnalyzer.printPlayerRatings(playerName,"PER",true) +  "\n" +
+                		"TS%:\t\t" + new DecimalFormat("0.0%").format(RankAnalyzer.totalPlayerTSPercentageMap.get(playerName))  + "\t" +  RankAnalyzer.printPlayerRatings(playerName,"TS%",true) +  "\n" + 
+                		"AST%:\t\t" + new DecimalFormat("0.0%").format(RankAnalyzer.totalPlayerASTPercentageMap.get(playerName))  + "\t" +  RankAnalyzer.printPlayerRatings(playerName,"AST%",true) +  "\n" +
+                		"OREB%:\t\t" + new DecimalFormat("0.0%").format(RankAnalyzer.totalPlayerOREBPercentageMap.get(playerName))  + "\t" +  RankAnalyzer.printPlayerRatings(playerName,"OREB%",true) +  "\n" +
+                		"DREB%:\t\t" + new DecimalFormat("0.0%").format(RankAnalyzer.totalPlayerDREBPercentageMap.get(playerName))  + "\t" +  RankAnalyzer.printPlayerRatings(playerName,"DREB%",true) +  "\n" +
+                		"TREB%:\t\t" + new DecimalFormat("0.0%").format(RankAnalyzer.totalPlayerTREBPercentageMap.get(playerName))  + "\t" +  RankAnalyzer.printPlayerRatings(playerName,"TREB%",true) +  "\n" +
+                		"USG RATE:\t" + new DecimalFormat("0.0%").format(RankAnalyzer.totalPlayerUsageRateMap.get(playerName))  + "\t" +  RankAnalyzer.printPlayerRatings(playerName,"USGRATE",true) +  "\n" +
+                		"OFF RTG:\t" + new DecimalFormat("0.00").format(RankAnalyzer.playerOffRatingMap.get(playerName))  + "\t" +  RankAnalyzer.printPlayerRatings(playerName,"OFFRTG",true) +  "\n" +
+                		"DEF RTG:\t" + new DecimalFormat("0.00").format(RankAnalyzer.playerDefRatingMap.get(playerName))  + "\t" +  RankAnalyzer.printPlayerRatings(playerName,"DEFRTG",false) +  "\n" +
+                		"Double Doubles:\t" + RankAnalyzer.playerDoubleDoublesMap.getOrDefault(playerName,0)  + "\t" +  RankAnalyzer.printPlayerRatings(playerName,"DD",true) +  "\n" +
+                		"Triple Doubles:\t" + RankAnalyzer.playerTripleDoublesMap.getOrDefault(playerName,0)  + "\t" +  RankAnalyzer.printPlayerRatings(playerName,"TD",true) +  "\n" +
+                		"Player Score:\t" + new DecimalFormat("0.00").format(RankAnalyzer.playerScoreMap.get(playerName))  + "\t" +  RankAnalyzer.printPlayerRatings(playerName,"PLAYERSCORE",true));
+                   
+                String playerGrade = "";
+                
+                
+                double playerScore = RankAnalyzer.playerScoreMap.get(playerName);
+                if (playerScore <= 2.50) {
+                	playerGrade = "F";
+                }
+                else if (playerScore > 2.50 && playerScore <= 5.00) {
+                	playerGrade = "E-";
+                }
+                else if (playerScore > 5.00 && playerScore <= 7.50) {
+                	playerGrade = "E";
+                }
+                else if (playerScore > 7.50 && playerScore <= 10.00) {
+                	playerGrade = "E+";            	
+                }
+                else if (playerScore > 10.00 && playerScore <= 12.50) {
+                	playerGrade = "D-";
+                }
+                else if (playerScore > 12.50 && playerScore <= 15.00) {
+                	playerGrade = "D";
+                }
+                else if (playerScore > 15.00 && playerScore <= 17.50) {
+                	playerGrade = "D+";
+                }
+                else if (playerScore > 17.50 && playerScore <= 20.00) {
+                	playerGrade = "C-";
+                }
+                else if (playerScore > 20.00 && playerScore <= 25.00) {
+                	playerGrade = "C";
+                }
+                else if (playerScore > 25.00 && playerScore <= 30.00) {
+                	playerGrade = "C+";
+                }
+                else if (playerScore > 30.00 && playerScore <= 40.00) {
+                	playerGrade = "B-";
+                }
+                else if (playerScore > 40.00 && playerScore <= 50.00) {
+                	playerGrade = "B";
+                }
+                else if (playerScore > 50.00 && playerScore <= 60.00) {
+                	playerGrade = "B+";
+                }
+                else if (playerScore > 60.00 && playerScore <= 70.00) {
+                	playerGrade = "A-";  
+                }
+                else if (playerScore > 70.00 && playerScore <= 90.00) {
+                	playerGrade = "A";   
+                }
+                else if (playerScore > 90.00) {
+                	playerGrade = "A+";
+                }
+                System.out.println("Player Grade:\t" + playerGrade + "\n");
+            }
+            
             
             System.out.println("------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------");
-        }
-        else {
-        	System.out.println("Player not found.");
-        }
+
        
     }
     

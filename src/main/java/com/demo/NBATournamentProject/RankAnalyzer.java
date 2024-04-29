@@ -35,15 +35,21 @@ public class RankAnalyzer {
 	    static Map<String, Double> totalPlayerFTPercentageMap = new HashMap<>();
 	    static Map<String, Integer> totalPlayerGamesMap = new HashMap<>();
 	    static Map<String, Integer> totalTeamMINMap = new HashMap<>();
-	    static Map<String, String> playerTeams = new HashMap<>();
+	    static Map<String, String> playerTeams = new LinkedHashMap<>();
 	    static Map<String, Double> playerScoreMap= new HashMap<>();
 	    static Map<String, Double> playerOffRatingMap= new HashMap<>();
 	    static Map<String, Double> playerDefRatingMap= new HashMap<>();
-	    static Map<String, Double> playerFloorPercentageMap= new HashMap<>();
+	    static Map<String, Double> playerFloorPercentageMap = new HashMap<>();
+	    static Map<String, Double> totalPlayerASTTORatioMap = new HashMap<>();
 	    
 	    
 	    static Map<String, Double> playerMVPScoreMap = new HashMap<>();
 	    static Map<String, Double> playerDPOTScoreMap = new HashMap<>();
+	    static Map<String, Double> playerOPOTScoreMap = new HashMap<>();
+	    static Map<String, Double> player6MOTScoreMap = new HashMap<>();
+	    static Map<String, Double> playerPTSScoredPercentageMap = new HashMap<>();
+	    static Map<String, Double> playerPTSAssistedPercentageMap = new HashMap<>();
+	    static Map<String, Double> playerPRFPercentageMap = new HashMap<>();
 	    static int totalPlayers = 0;
 	    static int totalPlayerGames = 0;
 	    static int totalPlayerMIN = 0;
@@ -104,6 +110,9 @@ public class RankAnalyzer {
 	    static Map<String, Double> totalPlayerUsageRateMap = new HashMap<>();
 	    static Map<String, Double> totalPlayerTSPercentageMap = new HashMap<>();
 	    
+	    static Map<String, Integer> playerDoubleDoublesMap = new HashMap<>();
+	    static Map<String, Integer> playerTripleDoublesMap = new HashMap<>();
+	    
 	    
 	    
 	    static Map<String, Integer> totalOpponentPTSMap = new HashMap<>();
@@ -144,13 +153,12 @@ public class RankAnalyzer {
 	    
 	    
 	 // Define weights for different categories
-	    final static double weightPOG = 2.5; // Weight for Player of the Game
-	    final static double weightPRF = 1.2; // Weight for Points Responsible For
-	    final static double weightPER = 1.5; // Weight for Player Efficiency Rating
+	    final static double weightPOG = 50.0; // Weight for Player of the Game
+	    final static double weightPRF = 0.8; // Weight for Points Responsible For
 	    final static double weightKeyStats = 1.1; // Slightly higher weight for rebounds, assists, etc.
 	    final static double weightGS = 1.5;  // Weight for Game Score
-	    final static double weightEfficiency = 0.8; // Weight for efficiency metrics (FG%, 3PT%, FT%)
-	    final static double weightNegative = -1.0; // Weight for turnovers and fouls
+	    final static double weightEfficiency = 20.0; // Weight for efficiency metrics (FG%, 3PT%, FT%)
+	    final static double weightNegative = 2.2; // Weight for turnovers and fouls
 	    
 	    static double VOP = 0;
 	    static double Factor = 0;
@@ -183,12 +191,16 @@ public class RankAnalyzer {
         private static final double COEFF_FT_MISSED = -20.091;
         private static final double COEFF_FG_MISSED = -39.190;
         private static final double COEFF_TO = -53.897;
+        
+        static List <String> playerNames = new ArrayList<>();
+        static Map<String, Map<Integer, Map<String,Number>>> allPlayerStats = new LinkedHashMap<>();
+        
 
 	    
  public static void addPlayerNames(Map<String, List<Map<String, List<Map<String, String>>>>> mainMap) {
 	 
      String playerName = "";
-     List <String> playerNames = new ArrayList<>();
+     
      for (Map.Entry<String, List<Map<String, List<Map<String, String>>>>> teamEntry : mainMap.entrySet()) {
          List<Map<String, List<Map<String, String>>>> dataList = teamEntry.getValue();
 
@@ -202,9 +214,11 @@ public class RankAnalyzer {
              }
              
          }
+
      	HighestStatTracker.initializePlayerTournamentHighs(playerNames);
          
      }
+     Collections.sort(playerNames);
 
  }
     
@@ -220,7 +234,7 @@ public class RankAnalyzer {
             int totalGames = 0;
             int totalTeamMIN = 0;
 
-            
+
             
             String playerName = "";
         for (Map.Entry<String, List<Map<String, List<Map<String, String>>>>> teamEntry : mainMap.entrySet()) {
@@ -228,46 +242,80 @@ public class RankAnalyzer {
 
             // Iterate over each sheet's data for the current team
             for (Map<String, List<Map<String, String>>> sheetDataMap : dataList) {
-            	
+                Map<Integer, Map<String, Number>> playerStats = new LinkedHashMap<>();
                 for (Map.Entry<String, List<Map<String, String>>> sheetEntry : sheetDataMap.entrySet()) {
-
+                	
                         List<Map<String, String>> sheetRows = sheetEntry.getValue();
 
+                        
                         // Print player's stats
                         playerName = sheetEntry.getKey();  
                         playerTeams.put(playerName, teamEntry.getKey());
+
                         // Iterate over each row of stats
                         for (Map<String, String> dataMap : sheetRows) {
-                            // Print individual stats
+                            
+                            totalGames++;
+                        	Map<String, Number> gameStats = new LinkedHashMap<>();
+                        	gameStats.put("MIN", Integer.parseInt(dataMap.get("MIN")));
+                        	// Accumulate totals from dataMap and store in gameStats
                         	totalPTS += Integer.parseInt(dataMap.get("PTS"));
-                            totalREB += Integer.parseInt(dataMap.get("REB"));
-                            totalAST += Integer.parseInt(dataMap.get("AST"));
-                            totalBLK += Integer.parseInt(dataMap.get("BLK"));
-                            totalSTL += Integer.parseInt(dataMap.get("STL"));
-                            totalTO += Integer.parseInt(dataMap.get("TO"));
-                            totalFGM += Integer.parseInt(dataMap.get("FGM"));
-                            totalFGA += Integer.parseInt(dataMap.get("FGA"));
-                            total3PTM += Integer.parseInt(dataMap.get("3PTM"));
-                            total3PTA += Integer.parseInt(dataMap.get("3PTA"));
-                            totalFTM += Integer.parseInt(dataMap.get("FTM"));
-                            totalFTA += Integer.parseInt(dataMap.get("FTA"));
-                            totalOREB += Integer.parseInt(dataMap.get("OR"));
-                            totalFLS += Integer.parseInt(dataMap.get("FLS"));
-                            totalPlusMinus += Integer.parseInt(dataMap.get("+/-"));
-                            totalMIN += Integer.parseInt(dataMap.get("MIN"));
-                            totalPRF += Integer.parseInt(dataMap.get("PRF"));
-                            totalDNK += Integer.parseInt(dataMap.get("DNK"));
-                            totalFPTS += Double.parseDouble(dataMap.get("FPTS"));
-                            totalPOG += Integer.parseInt(dataMap.get("POG"));
+                        	gameStats.put("PTS", Integer.parseInt(dataMap.get("PTS")));
+                        	totalREB += Integer.parseInt(dataMap.get("REB"));
+                        	gameStats.put("REB", Integer.parseInt(dataMap.get("REB")));
+                        	totalAST += Integer.parseInt(dataMap.get("AST"));
+                        	gameStats.put("AST", Integer.parseInt(dataMap.get("AST")));
+                        	totalBLK += Integer.parseInt(dataMap.get("BLK"));
+                        	gameStats.put("BLK", Integer.parseInt(dataMap.get("BLK")));
+                        	totalSTL += Integer.parseInt(dataMap.get("STL"));
+                        	gameStats.put("STL", Integer.parseInt(dataMap.get("STL")));
+                        	totalTO += Integer.parseInt(dataMap.get("TO"));
+                        	gameStats.put("TO", Integer.parseInt(dataMap.get("TO")));
+                        	totalFGM += Integer.parseInt(dataMap.get("FGM"));
+                        	gameStats.put("FGM", Integer.parseInt(dataMap.get("FGM")));
+                        	totalFGA += Integer.parseInt(dataMap.get("FGA"));
+                        	gameStats.put("FGA", Integer.parseInt(dataMap.get("FGA")));
+                        	total3PTM += Integer.parseInt(dataMap.get("3PTM"));
+                        	gameStats.put("3PTM", Integer.parseInt(dataMap.get("3PTM")));
+                        	total3PTA += Integer.parseInt(dataMap.get("3PTA"));
+                        	gameStats.put("3PTA", Integer.parseInt(dataMap.get("3PTA")));
+                        	totalFTM += Integer.parseInt(dataMap.get("FTM"));
+                        	gameStats.put("FTM", Integer.parseInt(dataMap.get("FTM")));
+                        	totalFTA += Integer.parseInt(dataMap.get("FTA"));
+                        	gameStats.put("FTA", Integer.parseInt(dataMap.get("FTA")));
+                        	totalOREB += Integer.parseInt(dataMap.get("OR"));
+                        	gameStats.put("OREB", Integer.parseInt(dataMap.get("OR")));
+                        	gameStats.put("DREB", Integer.parseInt(dataMap.get("REB")) - Integer.parseInt(dataMap.get("OR")));
+                        	totalFLS += Integer.parseInt(dataMap.get("FLS"));
+                        	gameStats.put("FLS", Integer.parseInt(dataMap.get("FLS")));
+                        	totalPlusMinus += Integer.parseInt(dataMap.get("+/-"));
+                        	gameStats.put("+/-", Integer.parseInt(dataMap.get("+/-")));
+                        	totalMIN += Integer.parseInt(dataMap.get("MIN"));
+
+                        	totalPRF += Integer.parseInt(dataMap.get("PRF"));
+                        	gameStats.put("PRF", Integer.parseInt(dataMap.get("PRF")));
+                        	totalDNK += Integer.parseInt(dataMap.get("DNK"));
+                        	gameStats.put("DNK", Integer.parseInt(dataMap.get("DNK")));
+                        	totalFPTS += Double.parseDouble(dataMap.get("FPTS"));
+                        	gameStats.put("FPTS", Double.parseDouble(dataMap.get("FPTS")));// Assuming FPTS should be integer for the map
+                        	gameStats.put("GS", Double.parseDouble(dataMap.get("GS")));
+                        	totalPOG += Integer.parseInt(dataMap.get("POG"));
+                        	gameStats.put("POG", Integer.parseInt(dataMap.get("POG")));
+                        	
+                        	
+                        	
+                        	                        	
+                        	
                             
                             totalPlayerMIN+= Integer.parseInt(dataMap.get("MIN"));
                             totalPlayerFGA += Integer.parseInt(dataMap.get("FGA"));
                             totalPlayer3PTA += Integer.parseInt(dataMap.get("3PTA"));
                             totalPlayerFTA += Integer.parseInt(dataMap.get("FTA"));
-                            
-                            totalGames++;    
+    
                             HighestStatTracker.updateHighestPlayerStats(sheetEntry.getKey(), dataMap);
                             HighestStatTracker.updatePlayerTournamentHighs(sheetEntry.getKey(), dataMap);
+                            updateDoubleTripleDoubles(playerName, dataMap);
+                            playerStats.put(totalGames, gameStats);
 
                     }
                 }
@@ -317,7 +365,10 @@ public class RankAnalyzer {
                 totalPlayerFPTSMap.put(playerName, totalFPTS);        
                 totalPlayerGSMap.put(playerName, (double)(totalPTS+0.4*totalFGM-0.7*totalFGA-0.4*(totalFTA-totalFTM)+0.7*totalOREB+0.3*(totalREB-totalOREB)+totalSTL+totalAST*0.7+0.7*totalBLK-0.4*totalFLS-totalTO)/totalGames);
                 totalPlayerDREBMap.put(playerName, totalREB - totalOREB);
-
+                if (totalTO > 0) {
+                	totalPlayerASTTORatioMap.put(playerName, (double)totalAST/totalTO);
+                }
+                
                 tournamentPTS += totalPTS;
                 tournamentAST += totalAST;
                 tournamentFGM += totalFGM;
@@ -334,6 +385,7 @@ public class RankAnalyzer {
                 tournamentDREB += (totalREB - totalOREB);
                 
         	    totalTeamMIN += totalMIN;
+        	    allPlayerStats.put(playerName, playerStats);
                 
                 totalPTS = 0; totalREB = 0; totalAST = 0; totalBLK = 0; totalSTL = 0; totalTO = 0;
                         totalFGM = 0; totalFGA = 0; total3PTM = 0; total3PTA = 0; totalFTM = 0; totalFTA = 0;
@@ -342,8 +394,23 @@ public class RankAnalyzer {
                 totalGames = 0;
             }
             totalTeamMINMap.put(teamEntry.getKey(), totalTeamMIN);
-            totalTeamMIN = 0;
-            
+            totalTeamMIN = 0;  
+        }
+        
+        Iterator<Map.Entry<String, Integer>> ddIterator = playerDoubleDoublesMap.entrySet().iterator();
+        while (ddIterator.hasNext()) {
+            Map.Entry<String, Integer> entry = ddIterator.next();
+            if (playerDoubleDoublesMap.get(entry.getKey()) == 0) { // Condition to remove the entry
+            	ddIterator.remove(); // Removes the current element without throwing an exception
+            }
+        }
+        
+        Iterator<Map.Entry<String, Integer>> tdIterator = playerTripleDoublesMap.entrySet().iterator();
+        while (tdIterator.hasNext()) {
+            Map.Entry<String, Integer> entry = tdIterator.next();
+            if (playerTripleDoublesMap.get(entry.getKey()) == 0) { // Condition to remove the entry
+            	tdIterator.remove(); // Removes the current element without throwing an exception
+            }
         }
 
         
@@ -354,8 +421,6 @@ public class RankAnalyzer {
     	avgPlayerFGA = (double)totalPlayerFGA/totalPlayers;
     	avgPlayer3PTA = (double)totalPlayer3PTA/totalPlayers;
     	avgPlayerFTA = (double) totalPlayerFTA/totalPlayers;
-
-
 //    	
 //    	removeRankingsForPercentage();	
 
@@ -450,6 +515,33 @@ public class RankAnalyzer {
         
        return totalOpponentMIN;
 
+    }
+    
+    public static void updateDoubleTripleDoubles(String playerName, Map<String, String> playerGameStats) { // Assuming player name is stored with key "PlayerName"
+        int[] stats = new int[]{
+            Integer.parseInt(playerGameStats.getOrDefault("PTS", "0")),
+            Integer.parseInt(playerGameStats.getOrDefault("REB", "0")),
+            Integer.parseInt(playerGameStats.getOrDefault("AST", "0")),
+            Integer.parseInt(playerGameStats.getOrDefault("STL", "0")),
+            Integer.parseInt(playerGameStats.getOrDefault("BLK", "0"))
+        };
+
+        int doubleDigits = 0;
+        for (int stat : stats) {
+            if (stat >= 10) {
+                doubleDigits++;
+            }
+        }
+
+        playerDoubleDoublesMap.putIfAbsent(playerName, 0);
+        playerTripleDoublesMap.putIfAbsent(playerName, 0);
+
+        if (doubleDigits >= 3) { // Triple-double
+            playerTripleDoublesMap.put(playerName, playerTripleDoublesMap.get(playerName) + 1);
+        } 
+        if (doubleDigits >= 2) { // Double-double
+            playerDoubleDoublesMap.put(playerName, playerDoubleDoublesMap.get(playerName) + 1);
+        }
     }
     
     public static void addPlayerPER() {
@@ -570,17 +662,18 @@ public class RankAnalyzer {
 
 
         	score += totalPlayerPTSMap.getOrDefault(name, 0); // Points remain a fundamental measure
-        	score += (totalPlayerREBMap.getOrDefault(name, 0) + totalPlayerASTMap.getOrDefault(name, 0) + totalPlayerSTLMap.getOrDefault(name, 0) 
-        	+totalPlayerBLKMap.getOrDefault(name, 0)) * weightKeyStats; // Emphasize rebounds
+        	score += (totalPlayerREBMap.getOrDefault(name, 0)*1.2 + totalPlayerASTMap.getOrDefault(name, 0)*1.5 + totalPlayerSTLMap.getOrDefault(name, 0)*3 
+        	+totalPlayerBLKMap.getOrDefault(name, 0)* 3) * weightKeyStats; // Emphasize rebounds
 
         	// Adjust for efficiency and weighted negative impacts
         	// Subtract attempts to encourage efficiency but use a lesser negative impact since attempts also indicate involvement
         	score -= (totalPlayerTOMap.getOrDefault(name, 0) + totalPlayerFLSMap.getOrDefault(name, 0)) * weightNegative; // Turnovers
 
         	// Consider efficiency and turnovers with balanced approach
-        	score += (totalPlayerFGPercentageMap.getOrDefault(name, 0.0) * 100) * weightEfficiency; // Efficiency is still important but balanced  
-        	score += (totalPlayer3PTPercentageMap.getOrDefault(name, 0.0) * 100) * weightEfficiency;
-        	score += (totalPlayerFTPercentageMap.getOrDefault(name, 0.0) * 100) * weightEfficiency;
+        	score -= (totalPlayerFGPercentageMap.getOrDefault(name, 0.0) + 
+        			totalPlayer3PTPercentageMap.getOrDefault(name, 0.0) + 
+        			totalPlayerFTPercentageMap.getOrDefault(name, 0.0)*0.44) * weightEfficiency; // Efficiency is still important but balanced  
+
 
         	// Include advanced stats with their weights
         	// Include POG with increased weight
@@ -591,7 +684,7 @@ public class RankAnalyzer {
         	// Adjustments for more comprehensive consideration (optional based on data availability)
         	// These might include offensive rebounds, plus/minus, and others that you find relevant
         	score += totalPlayerOREBMap.getOrDefault(name, 0) * 1.2;
-        	score += totalPlayerPlusMinusMap.getOrDefault(name, 0) * 1.0;
+        	score += totalPlayerPlusMinusMap.getOrDefault(name, 0)*0.7;
         	score /= (double)totalPlayerGamesMap.get(name);
             // Update the score map
             playerScoreMap.put(name, score);
@@ -637,15 +730,126 @@ public class RankAnalyzer {
     	
     }
     
-    public static void findRoster(String teamName) {
+    public static void findRoster(String teamName, Scanner scan) {
     	int i = 0;
-    	for (String player : playerTeams.keySet()) {
+    	double teamGradeNum = 0.0;
+    	String teamGrade = "";
+    	Map<Integer, String> choosePlayer = new HashMap<>();
+		for (String player : playerTeams.keySet()) {
     		if (playerTeams.get(player).equals(teamName)) {
     			i++;
-    			System.out.println(i + ". " + player);
-    		}	
+    			 choosePlayer.put(i,player);
+    	            double playerScore = playerScoreMap.get(player);
+    	            teamGradeNum += playerScore;
+    		}
     	}
+    	
+		teamGradeNum/=i;
+		if (teamGradeNum <= 20.0) {
+			teamGrade = "F";
+		}
+		else if (teamGradeNum > 20.0 && teamGradeNum <= 22.5) {
+			teamGrade = "E";
+		}
+		else if (teamGradeNum > 22.5 && teamGradeNum <= 25.0) {
+			teamGrade = "D";
+		}
+		else if (teamGradeNum > 25.0 && teamGradeNum <= 30.0) {
+			teamGrade = "C";
+		}
+		else if (teamGradeNum > 30.0 && teamGradeNum <= 35.0) {
+			teamGrade = "B";
+		}
+		else if (teamGradeNum > 35.0) {
+			teamGrade = "A";
+		}
+		boolean loop = false;
+		while (!loop) {
+
+
+		System.out.println("Team Grade: " + teamGrade);
+
     	System.out.println("");
+    	
+			System.out.println("Please Choose which player you are looking for(press L to leave): ");
+			for (int integer : choosePlayer.keySet()) {
+				String playerGrade = ""; 
+                double playerScore = playerScoreMap.get(choosePlayer.get(integer));
+                if (playerScore <= 2.50) {
+                	playerGrade = "F";
+                }
+                else if (playerScore > 2.50 && playerScore <= 5.00) {
+                	playerGrade = "E-";
+                }
+                else if (playerScore > 5.00 && playerScore <= 7.50) {
+                	playerGrade = "E";
+                }
+                else if (playerScore > 7.50 && playerScore <= 10.00) {
+                	playerGrade = "E+";            	
+                }
+                else if (playerScore > 10.00 && playerScore <= 12.50) {
+                	playerGrade = "D-";
+                }
+                else if (playerScore > 12.50 && playerScore <= 15.00) {
+                	playerGrade = "D";
+                }
+                else if (playerScore > 15.00 && playerScore <= 17.50) {
+                	playerGrade = "D+";
+                }
+                else if (playerScore > 17.50 && playerScore <= 20.00) {
+                	playerGrade = "C-";
+                }
+                else if (playerScore > 20.00 && playerScore <= 25.00) {
+                	playerGrade = "C";
+                }
+                else if (playerScore > 25.00 && playerScore <= 30.00) {
+                	playerGrade = "C+";
+                }
+                else if (playerScore > 30.00 && playerScore <= 40.00) {
+                	playerGrade = "B-";
+                }
+                else if (playerScore > 40.00 && playerScore <= 50.00) {
+                	playerGrade = "B";
+                }
+                else if (playerScore > 50.00 && playerScore <= 60.00) {
+                	playerGrade = "B+";
+                }
+                else if (playerScore > 60.00 && playerScore <= 70.00) {
+                	playerGrade = "A-";  
+                }
+                else if (playerScore > 70.00 && playerScore <= 90.00) {
+                	playerGrade = "A";   
+                }
+                else if (playerScore > 90.00) {
+                	playerGrade = "A+";
+                }
+				System.out.println("[" + integer + "]" + " " + choosePlayer.get(integer) + ", Grade: " + playerGrade);
+			}
+			System.out.println("[L] Leave\n");
+			String choosePlayerIndex = scan.nextLine();
+			
+			if (App.isPositiveInteger(choosePlayerIndex)  || App.containsValueIgnoreCase(choosePlayer,choosePlayerIndex)) {
+				if (App.isPositiveInteger(choosePlayerIndex) && Integer.parseInt(choosePlayerIndex) > 0 && Integer.parseInt(choosePlayerIndex) <= choosePlayer.size()) {
+					String choosePlayerName = choosePlayer.get(Integer.parseInt(choosePlayerIndex));
+					StatsPrinter.printPlayerStats(choosePlayerName, App.playerMap, 0, 0, true, false);
+				}
+
+				else if (App.containsValueIgnoreCase(choosePlayer,choosePlayerIndex)) {
+					String choosePlayerName = App.findValueIgnoreCase(choosePlayer, choosePlayerIndex);
+					StatsPrinter.printPlayerStats(choosePlayerName, App.playerMap, 0, 0, true, false);
+				}
+				else {
+					System.out.println("Not an answer above, please try again.");
+				}
+			}
+			else if (choosePlayerIndex.toUpperCase().equals("L")) {
+				loop = true;
+			}
+			else {
+				System.out.println("Not an answer above, please try again.");
+			}
+		}	
+	
     	
     	
     }
@@ -757,6 +961,13 @@ public class RankAnalyzer {
         	double DRtg = (double)Team_Defensive_Rating + 0.2 * (100.0 * D_Pts_per_ScPoss * (1.0 - StopPercentage) - Team_Defensive_Rating);
         	
         	playerDefRatingMap.put(name, DRtg);	
+        	double PRF = totalPlayerPRFMap.get(name);
+        	double PTSScoredPercentage = (double) PTS/Team_PTS;
+        	double PTSAssistedPercentage = (double) (PRF-PTS)/Team_PTS;
+        	double prfPercentage = (double)PRF/Team_PTS;
+        	playerPTSScoredPercentageMap.put(name, PTSScoredPercentage);
+        	playerPTSAssistedPercentageMap.put(name,PTSAssistedPercentage);
+        	playerPRFPercentageMap.put(name, prfPercentage);
         		
         }
     }
@@ -969,7 +1180,15 @@ public class RankAnalyzer {
     
     public static void addTournamentAwardsScore(List<Map<String, Object>> standings) {
     	
-    	for (String playerName : totalPlayerPTSMap.keySet()) {
+    	int limit = standings.size()*5;
+    	int player = 1;
+
+    	
+    	Map<String, Integer> newMINMap = new HashMap<>(totalPlayerMINMap);
+    	
+    	newMINMap = sortByBigValue(newMINMap);
+    	
+    	for (String playerName : newMINMap.keySet()) {
     		double points = totalPlayerPTSMap.getOrDefault(playerName, 0);
     		double assists = totalPlayerASTMap.getOrDefault(playerName, 0);
     		double offensiveRebounds = totalPlayerOREBMap.getOrDefault(playerName, 0);
@@ -1005,21 +1224,39 @@ public class RankAnalyzer {
     		double playerDefensiveRating = playerDefRatingMap.get(playerName);
     		double playerScore = playerScoreMap.get(playerName);
     		double gamesPlayed = totalTeamGamesMap.get(teamName);
+    		double POGs = totalPlayerPOGMap.getOrDefault(playerName,0);
+    		double fieldGoalsMade = totalPlayerFGMMap.get(playerName);
+    		double fieldGoalsAttempted = totalPlayerFGAMap.get(playerName);
+    		double threePointMade = totalPlayer3PTMMap.get(playerName);
+    		double threePointAttempted = totalPlayer3PTAMap.get(playerName);
+    		double freeThrowsMade = totalPlayerFTMMap.get(playerName);
+    		double freeThrowsAttempted = totalPlayerFTAMap.get(playerName);
+    		
     		
     		double MVPScore = TournamentAwardsCalculator.calculateMVP(points, assists, offensiveRebounds, pointsResponsibleFor,
     	            fgPercentage, threePointPercentage,  freeThrowPercentage,
     	            defensiveRebounds, blocks, steals, fouls,
     	            plusMinus, teamWins, playerEfficiencyRating, gameScore,
-    	            turnovers, minutes, teamsOffensiveRating, teamsDefensiveRating,
-    	            playerOffensiveRating, playerDefensiveRating,playerScore);
+    	            turnovers, teamsOffensiveRating, teamsDefensiveRating,
+    	            playerOffensiveRating, playerDefensiveRating,playerScore, gamesPlayed, POGs);
     		
     		
     		double DPScore = TournamentAwardsCalculator.calculateDefensivePlayerScore(defensiveRebounds, blocks, steals, 
-                     fouls,  teamsDefensiveRating,  playerDefensiveRating, 
-                     minutes,gamesPlayed);
+                     fouls,  teamsDefensiveRating,  playerDefensiveRating,gamesPlayed);
+    		
+    		double OPScore = TournamentAwardsCalculator.calculateOffensivePlayerScore(offensiveRebounds, points, assists, pointsResponsibleFor,
+    	            fieldGoalsMade, fieldGoalsAttempted,
+    	            threePointMade, threePointAttempted,
+    	            freeThrowsMade,  freeThrowsAttempted,
+    	            teamsOffensiveRating, playerOffensiveRating,gamesPlayed);
     		
     		playerMVPScoreMap.put(playerName, MVPScore);
     		playerDPOTScoreMap.put(playerName, DPScore);
+    		playerOPOTScoreMap.put(playerName, OPScore);
+    		if (player > limit) {
+    			player6MOTScoreMap.put(playerName, MVPScore);
+    		}
+    		player++;
     	}
     	
     }
@@ -1161,7 +1398,7 @@ public class RankAnalyzer {
             	formattedNumber += "+";
             }
             formattedNumber += String.valueOf(score);
-            if (statMap.equals(totalPlayerFPTSMap) || statMap.equals(totalPlayerGSMap)) {
+            if (statMap.equals(totalPlayerFPTSMap) || statMap.equals(totalPlayerGSMap) || statMap.equals(totalPlayerASTTORatioMap)) {
                 DecimalFormat df = new DecimalFormat("0.0");
 
                 // Format the number to two decimal places
@@ -1187,8 +1424,7 @@ public class RankAnalyzer {
             double avgStat = score.doubleValue() / (double) totalPlayerGamesMap.get(playerStat.getKey());
 
          // Padding for player name
-            String paddedName = String.format("%-30s", playerStat.getKey() + ((statMap.equals(playerMVPScoreMap) || 
-            		statMap.equals(playerDPOTScoreMap))?  "" :":"));
+            String paddedName = String.format("%-30s", playerStat.getKey());
 
             // Padding for rank
             String paddedRank = String.format("%-5s", rank + ".");
@@ -1197,7 +1433,7 @@ public class RankAnalyzer {
             String paddedFormattedNumber = String.format("%-7s", formattedNumber);
 
             System.out.println(paddedRank + " " + paddedName + " " + ((statMap.equals(playerMVPScoreMap) || 
-            		statMap.equals(playerDPOTScoreMap))?  "" :
+            		statMap.equals(playerDPOTScoreMap) || statMap.equals(player6MOTScoreMap) || statMap.equals(playerOPOTScoreMap))?  "" :
                             ((statMap.equals(totalPlayerFGPercentageMap) ||
                                     statMap.equals(totalPlayer3PTPercentageMap) ||
                                     statMap.equals(totalPlayerFTPercentageMap) || 
@@ -1206,7 +1442,9 @@ public class RankAnalyzer {
                                     statMap.equals(totalPlayerASTPercentageMap) ||
                                     statMap.equals(totalPlayerUsageRateMap) ||
                                     statMap.equals(totalPlayerTSPercentageMap)||
-                                    statMap.equals(totalPlayerTREBPercentageMap) || statMap.equals(playerFloorPercentageMap)) ? new DecimalFormat("#0.0%").format(score) : paddedFormattedNumber) +
+                                    statMap.equals(totalPlayerTREBPercentageMap) || statMap.equals(playerFloorPercentageMap) || 
+                                    statMap.equals(playerPRFPercentageMap) || statMap.equals(playerPTSScoredPercentageMap) ||
+                            		statMap.equals(playerPTSAssistedPercentageMap)) ? new DecimalFormat("#0.0%").format(score) : paddedFormattedNumber) +
                             "\t\t" +
                             ((statMap.equals(totalPlayerGSMap) || statMap.equals(totalPlayerPERMap) || statMap.equals(totalPlayerFGPercentageMap) ||
                                     statMap.equals(totalPlayer3PTPercentageMap) || statMap.equals(totalPlayerFTPercentageMap) || 
@@ -1218,7 +1456,14 @@ public class RankAnalyzer {
                                     statMap.equals(totalPlayerTREBPercentageMap)|| 
                                     statMap.equals(playerOffRatingMap)|| 
                                     statMap.equals(playerDefRatingMap)|| 
-                                    statMap.equals(playerFloorPercentageMap)) ? "" : "AVG: "  + ((statMap.equals(totalPlayerPlusMinusMap) && score.doubleValue() >= 0) ?  "+" : "") + new DecimalFormat("0.0").format(avgStat))) + "\t" + playerTeams.get(playerStat.getKey()));         
+                                    statMap.equals(playerFloorPercentageMap) || 
+                                    statMap.equals(playerDoubleDoublesMap) ||
+                                    statMap.equals(playerTripleDoublesMap) || 
+                                    statMap.equals(totalPlayerASTTORatioMap) || 
+                                    statMap.equals(playerPRFPercentageMap)|| 
+                                    statMap.equals(playerPTSScoredPercentageMap) ||
+                            		statMap.equals(playerPTSAssistedPercentageMap) || 
+                            		statMap.equals(playerOPOTScoreMap)) ? "" : "AVG: "  + ((statMap.equals(totalPlayerPlusMinusMap) && score.doubleValue() >= 0) ?  "+" : "") + new DecimalFormat("0.0").format(avgStat))) + "\t" + playerTeams.get(playerStat.getKey()));         
             if (i >= topTotal) {
                 break;
             }
@@ -1263,7 +1508,7 @@ public class RankAnalyzer {
                 long avgMinutes = averageTOP % 60;
                 formattedNumber = String.format("%02d:%02d", avgHours, avgMinutes); 
             }
-            if (statMap.equals(totalTeamOERMap) || statMap.equals(totalTeamDERMap) || statMap.equals(totalTeamPOSMap)) {
+            if (statMap.equals(totalTeamOERMap) || statMap.equals(totalTeamDERMap) || statMap.equals(totalTeamPOSMap) || statMap.equals(totalOpponentPOSMap)) {
                 DecimalFormat df = new DecimalFormat("0.0");
 
                 // Format the number to two decimal places
@@ -1412,10 +1657,11 @@ public class RankAnalyzer {
     
 
     public static String rankWithOrdinal(int rank) {
-        if (rank >= 11 && rank <= 13) {
-            return rank + "th";
+        int lastTwoDigits = rank % 100;  // Gets the last two digits of the number
+        if (lastTwoDigits >= 11 && lastTwoDigits <= 13) {
+            return rank + "th";  // Correctly handles cases like 111th, 112th, 113th, etc.
         }
-        switch (rank % 10) {
+        switch (rank % 10) {  // Checks the last digit for the ordinal indicator
             case 1:
                 return rank + "st";
             case 2:
@@ -1426,16 +1672,16 @@ public class RankAnalyzer {
                 return rank + "th";
         }
     }
+
     
 
 
 public static void printPlayerRankings(String playerName) {
-	System.out.println("RANK\t" + findRankStat(playerName, totalPlayerPTSMap, true) + "\t" + findRankStat(playerName, totalPlayerREBMap, true) + "\t" + findRankStat(playerName, totalPlayerASTMap, true) + "\t" + findRankStat(playerName, totalPlayerBLKMap, true) + "\t" +
+	System.out.println("RANK\t" +  findRankStat(playerName, totalPlayerMINMap, true) + "\t" + findRankStat(playerName, totalPlayerPTSMap, true) + "\t" + findRankStat(playerName, totalPlayerREBMap, true) + "\t" + findRankStat(playerName, totalPlayerASTMap, true) + "\t" + findRankStat(playerName, totalPlayerBLKMap, true) + "\t" +
 	        findRankStat(playerName, totalPlayerSTLMap, true) + "\t" + findRankStat(playerName, totalPlayerTOMap, true) + "\t" + findRankStat(playerName, totalPlayerFGMMap, true) + "\t" + findRankStat(playerName, totalPlayerFGAMap, true) + "\t" + findRankStat(playerName, totalPlayer3PTMMap, true) + "\t" +
-	        findRankStat(playerName, totalPlayer3PTAMap, true) + "\t" +findRankStat(playerName, totalPlayerFTMMap, true) + "\t" + findRankStat(playerName, totalPlayerFTAMap, true) + "\t" + findRankStat(playerName, totalPlayerOREBMap, true) + "\t" + findRankStat(playerName, totalPlayerFLSMap, true) + "\t" +
-	        findRankStat(playerName, totalPlayerPlusMinusMap, true) + "\t" + findRankStat(playerName, totalPlayerFGPercentageMap, true) + "\t" + findRankStat(playerName, totalPlayer3PTPercentageMap, true) + "\t" + findRankStat(playerName, totalPlayerFTPercentageMap, true) + "\t" +  
-	        findRankStat(playerName, totalPlayerMINMap, true) + "\t" + findRankStat(playerName, totalPlayerPRFMap, true) + "\t" + findRankStat(playerName, totalPlayerDNKMap, true) + "\t" +
-	        findRankStat(playerName, totalPlayerFPTSMap, true) + "\t" + findRankStat(playerName, totalPlayerGSMap, true) + "\t" + findRankStat(playerName, totalPlayerPOGMap, true) + "\t" + findRankStat(playerName, totalPlayerPERMap, true));
+	        findRankStat(playerName, totalPlayer3PTAMap, true) + "\t" +findRankStat(playerName, totalPlayerFTMMap, true) + "\t" + findRankStat(playerName, totalPlayerFTAMap, true) + "\t" + findRankStat(playerName, totalPlayerOREBMap, true) + "\t" + findRankStat(playerName, totalPlayerDREBMap, true) + "\t" + findRankStat(playerName, totalPlayerFLSMap, true) + "\t" +
+	        findRankStat(playerName, totalPlayerPlusMinusMap, true) + "\t" + findRankStat(playerName, totalPlayerFGPercentageMap, true) + "\t" + findRankStat(playerName, totalPlayer3PTPercentageMap, true) + "\t" + findRankStat(playerName, totalPlayerFTPercentageMap, true) + "\t"  + findRankStat(playerName, totalPlayerPRFMap, true) + "\t" + findRankStat(playerName, totalPlayerDNKMap, true) + "\t" +
+	        findRankStat(playerName, totalPlayerFPTSMap, true) + "\t" + findRankStat(playerName, totalPlayerGSMap, true) + "\t" + findRankStat(playerName, totalPlayerPOGMap, true));
 
 }
 
@@ -1463,6 +1709,69 @@ public static void printTeamRankings(String teamName, boolean isTeam) {
 	}
 
 }
+
+public static String printPlayerRatings(String playerName, String ratingName, boolean isTeam) {
+	String string = "";
+	if (ratingName.equals("PER")) {
+		string = findRankStat(playerName, totalPlayerPERMap, isTeam);
+	}
+	if (ratingName.equals("POG")) {
+		string = findRankStat(playerName, totalPlayerPOGMap, isTeam);
+	}
+	if (ratingName.equals("TS%")) {
+
+			string = findRankStat(playerName, totalPlayerTSPercentageMap, isTeam);
+		}	
+	if (ratingName.equals("AST%")) {
+
+			string = findRankStat(playerName, totalPlayerASTPercentageMap, isTeam);
+		}
+	if (ratingName.equals("OREB%")) {
+
+		string = findRankStat(playerName, totalPlayerOREBPercentageMap, isTeam);
+	}
+	if (ratingName.equals("DREB%")) {
+
+		string = findRankStat(playerName, totalPlayerDREBPercentageMap, isTeam);
+	}
+	if (ratingName.equals("TREB%")) {
+
+		string = findRankStat(playerName, totalPlayerTREBPercentageMap, isTeam);
+	}
+	if (ratingName.equals("USGRATE")) {
+
+		string = findRankStat(playerName, totalPlayerUsageRateMap, isTeam);
+	}
+	if (ratingName.equals("OFFRTG")) {
+
+		string = findRankStat(playerName, playerOffRatingMap, isTeam);
+	}
+	if (ratingName.equals("DEFRTG")) {
+
+		string = findRankStat(playerName, playerDefRatingMap, isTeam);
+	}
+	if (ratingName.equals("DD")) {
+
+		string = findRankStat(playerName, playerDoubleDoublesMap, isTeam);
+	}
+	if (ratingName.equals("TD")) {
+
+		string = findRankStat(playerName, playerTripleDoublesMap, isTeam);
+	}
+	if (ratingName.equals("PLAYERSCORE")) {
+
+		string = findRankStat(playerName, playerScoreMap, isTeam);
+	}
+	
+
+
+	
+	return string;
+}
+
+
+
+
 
 public static String printTeamEfficiencyRankings(String teamName, String efficiencyName, boolean isTeam) {
 	String string = "";
@@ -1624,7 +1933,6 @@ public static void getRankings(int statNum, int totalPlayers) {
             printCentered("POG Leaders");
             rankPlayers(totalPlayerPOGMap, totalPlayers);
             break;
-            
         case 31:
             printCentered("Player Score Leaders");
             rankPlayers(playerScoreMap, totalPlayers);
@@ -1638,24 +1946,56 @@ public static void getRankings(int statNum, int totalPlayers) {
             rankPlayers(totalPlayerTSPercentageMap, totalPlayers);
             break;
         case 34:
+            printCentered("Points Scored Percentage Leaders");
+            rankPlayers(playerPTSScoredPercentageMap, totalPlayers);
+            break;
+        case 35:
+            printCentered("Points Assisted Percentage Leaders");
+            rankPlayers(playerPTSAssistedPercentageMap, totalPlayers);
+            break;
+        case 36:
+            printCentered("Points Responsible For Percentage Leaders");
+            rankPlayers(playerPRFPercentageMap, totalPlayers);
+            break;
+        case 37:
             printCentered("Offensive Rating Leaders");
             rankPlayers(playerOffRatingMap, totalPlayers);
             break;
-        case 35:
+        case 38:
             printCentered("Defensive Rating Leaders");
             rankPlayers(playerDefRatingMap, totalPlayers);
             break;
-        case 36:
+        case 39:
             printCentered("Floor Percentage Leaders");
             rankPlayers(playerFloorPercentageMap, totalPlayers);
             break;
-        case 37:
+        case 40:
+            printCentered("Double Double Leaders");
+            rankPlayers(playerDoubleDoublesMap, totalPlayers);
+            break;
+        case 41:
+            printCentered("Triple Double Leaders");
+            rankPlayers(playerTripleDoublesMap, totalPlayers);
+            break;
+        case 42:
+            printCentered("Assist to Turnover Ratio Leaders");
+            rankPlayers(totalPlayerASTTORatioMap, totalPlayers);
+            break;
+        case 43:
             printCentered("MVP Ladder");
             rankPlayers(playerMVPScoreMap, totalPlayers);
             break;
-        case 38:
-            printCentered("DPOT Laddter");
+        case 44:
+            printCentered("DPOT Ladder");
             rankPlayers(playerDPOTScoreMap, totalPlayers);
+            break;
+        case 45:
+            printCentered("OPOT Ladder");
+            rankPlayers(playerOPOTScoreMap, totalPlayers);
+            break;    
+        case 46:
+            printCentered("6MOT Ladder");
+            rankPlayers(player6MOTScoreMap, totalPlayers);
             break;
             
     }
@@ -1740,7 +2080,7 @@ public static void getTeamRankings(int statNum, boolean isTeam) {
 	        rankTeams(isTeam ? totalTeamBLKMap : totalOpponentBLKMap, isTeam);
 	        break;
 	    case 19:
-	        printCentered((isTeam ? " " : "Opponent ") + "Turnover" + (isTeam ? " " : "s") + "Leaders");
+	        printCentered((isTeam ? " " : "Opponent ") + "Turnover" + (isTeam ? " " : "s ") + "Leaders");
 	        rankTeams(isTeam ? totalTeamTOMap : totalOpponentTOMap, !isTeam); // Note the inversion of isTeam for "allowed" stats
 	        break;
 	    case 20:
@@ -1772,7 +2112,7 @@ public static void getTeamRankings(int statNum, boolean isTeam) {
 	        rankTeams(isTeam ? totalTeamPOSMap : totalOpponentPOSMap, isTeam);
 	        break;
 	    case 27:
-	        printCentered((isTeam ? "Offensive Efficiency Rating " : "Defensive Efficiency Rating") + "Leaders");
+	        printCentered((isTeam ? "Offensive Efficiency Rating " : "Defensive Efficiency Rating ") + "Leaders");
 	        rankTeams(isTeam ? totalTeamOERMap : totalTeamDERMap, isTeam);
 	        break;       
 	}

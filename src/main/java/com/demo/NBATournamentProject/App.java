@@ -4,15 +4,17 @@ import java.text.DecimalFormat;
 import java.util.*;
 
 
+
 public class App {
+	static Map<String, List<Map<String, List<Map<String, String>>>>> playerMap = new HashMap<String, List<Map<String, List<Map<String, String>>>>>();
+    static Map<String, List<Map<String, List<Map<String, String>>>>> teamStatsMap = new HashMap<String, List<Map<String, List<Map<String, String>>>>>();
+    static Map<String, List<Map<String, List<Map<String, String>>>>> opponentStatsMap = new HashMap<String, List<Map<String, List<Map<String, String>>>>>();
+
+
     public static void main(String[] args) {
     	
         // Create the key-value map
-        Map<String, List<Map<String, List<Map<String, String>>>>> playerMap = new HashMap<String, List<Map<String, List<Map<String, String>>>>>();
-        Map<String, List<Map<String, List<Map<String, String>>>>> teamStatsMap = new HashMap<String, List<Map<String, List<Map<String, String>>>>>();
-        Map<String, List<Map<String, List<Map<String, String>>>>> opponentStatsMap = new HashMap<String, List<Map<String, List<Map<String, String>>>>>();
-
-        // Initialize the team names
+                // Initialize the team names
         String[] teamNames = {
             "Team 3 Pointers", "Team 6th Man", "Team Africa", "Team Canada", "Team China",
             "Team Defense", "Team Dunk", "Team Europe", "Team France", "Team Improved",
@@ -43,6 +45,8 @@ public class App {
         // Example data initialization
         PlayerOfTheRoundAnalyzer playerOfTheRoundAnalyzer = new PlayerOfTheRoundAnalyzer(playerMap);
         RankAnalyzer.addTournamentAwardsScore(analyzer.standings);
+        analyzer.findUniqueGames();
+
         // Example usage
 
         
@@ -66,6 +70,8 @@ public class App {
             System.out.println("[10] Check Team Standings");
             System.out.println("[11] Check Head to Head Records");
             System.out.println("[12] Check Player of the Rounds");
+            System.out.println("[13] Check Best Players of the Rounds");
+            System.out.println("[14] Check Game Records");
             System.out.println("[L] Leave");
             
             Scanner scan = new Scanner(System.in);
@@ -102,29 +108,27 @@ public class App {
                 		
                 		if (isPositiveInteger(teamAnswer) || found) {
                 			if (found) {
-                				RankAnalyzer.findRoster(teamAnswer);
+                				RankAnalyzer.findRoster(teamAnswer, scan);
                 			}
                 			
                 			else if (Integer.parseInt(teamAnswer) >= 1 && Integer.parseInt(teamAnswer) <= teamNames.length) {
-                				RankAnalyzer.findRoster(teamNames[Integer.parseInt(teamAnswer) - 1]);
+                				RankAnalyzer.findRoster(teamNames[Integer.parseInt(teamAnswer) - 1],scan);
                 			}
                     		else {
                     			System.out.println("Not an option, please try again.");
                     		}
                 		}
+                		else {
+                			System.out.println("Not an option, please try again.");
+                		}
 
                 	}
                 
                 }
-            	
-            	
-            	
-            	
-            	
-            	
+            	 	
             	
                 else if (index.equals("2")) {
-                	System.out.println("What Player would you like to search for? (Type L to leave)");
+                	System.out.println("What player or keyword would you like to search for? (Type L to leave)");
                 	System.out.print("Player Name: ");
                 	String playerName = scan.nextLine();
                 	if (playerName.toUpperCase().equals("L")) {
@@ -132,7 +136,59 @@ public class App {
                 		break;
                 	}
                 	else {
-                		StatsPrinter.printPlayerStats(playerName, playerMap);
+                		Map<Integer, String> choosePlayer = new HashMap<>();
+                		if (playerName.length() >= 3) {
+                			int playerIndex = 1;
+                    		for (String player : RankAnalyzer.playerNames) {
+                    			if (player.toLowerCase().contains(playerName.toLowerCase())) {
+                    				choosePlayer.put(playerIndex, player);
+                    				playerIndex++;
+                    			}
+                    		}
+                    		if (!choosePlayer.isEmpty()) {
+                    			boolean loop = false;
+                    			while (!loop) {
+                        			System.out.println("Please Choose which player you are looking for (press L to leave keyword search): ");
+                        			for (int integer : choosePlayer.keySet()) {
+                        				System.out.println("[" + integer + "]" + " " + choosePlayer.get(integer));
+                        			}
+                        			System.out.println("[L] Leave\n");
+                        			String choosePlayerIndex = scan.nextLine();
+                        			
+                        			if (isPositiveInteger(choosePlayerIndex)  || containsValueIgnoreCase(choosePlayer,choosePlayerIndex)) {
+                        				if (App.isPositiveInteger(choosePlayerIndex) && Integer.parseInt(choosePlayerIndex) > 0 && Integer.parseInt(choosePlayerIndex) <= choosePlayer.size()) {
+                        					String choosePlayerName = choosePlayer.get(Integer.parseInt(choosePlayerIndex));
+                        					StatsPrinter.printPlayerStats(choosePlayerName, playerMap, 0, 0, true, false);
+                        					loop = true;
+                        				}
+                        				else if (containsValueIgnoreCase(choosePlayer,choosePlayerIndex)) {
+                        					String choosePlayerName = findValueIgnoreCase(choosePlayer, choosePlayerIndex);
+                        					StatsPrinter.printPlayerStats(choosePlayerName, playerMap, 0, 0, true, false);
+                        					loop = true;
+                        				}
+                            			else {
+                            				System.out.println("Not an answer above, please try again.");
+                            			}
+                        			}
+                        			else if (choosePlayerIndex.toUpperCase().equals("L")) {
+                        				loop = true;
+                        			}
+                        			else {
+                        				System.out.println("Not an answer above, please try again.");
+                        			}
+                    			}	
+                    		}
+                    		else {
+                    			System.out.println("Player(s) does not exist, please try again.");
+                    		}
+                		}
+                		else {
+                			System.out.println("player or keyword has to be at least 3 characters");
+                		}
+
+                		
+                		
+                		
                 		
                 	}
                 }
@@ -215,11 +271,19 @@ public class App {
                     System.out.println("[31] Player Scores");
                     System.out.println("[32] Usage Rate");
                     System.out.println("[33] True Shooting Percentage");
-                    System.out.println("[34] Offensive Rating");
-                    System.out.println("[35] Defensive Rating");
-                    System.out.println("[36] Floor Percentage");
-                    System.out.println("[37] MVP Ladder");
-                    System.out.println("[38] DPOT Ladder");
+                    System.out.println("[34] Points Scored Percentage");
+                    System.out.println("[35] Points Assisted Percentage");
+                    System.out.println("[36] Points Responsible For Percentage");
+                    System.out.println("[37] Offensive Rating");
+                    System.out.println("[38] Defensive Rating");
+                    System.out.println("[39] Floor Percentage");
+                    System.out.println("[40] Double Doubles");
+                    System.out.println("[41] Triple Doubles");
+                    System.out.println("[42] Assist to Turnover Ratio");
+                    System.out.println("[43] MVP Ladder");
+                    System.out.println("[44] DPOT Ladder");
+                    System.out.println("[45] OPOT Ladder");
+                    System.out.println("[46] 6MOT Ladder");
                     System.out.println("[L]  Leave");
                     String statNum = scan.nextLine();
                     
@@ -230,7 +294,7 @@ public class App {
                     }
                     
                     if (isPositiveInteger(statNum)) {
-                    	if (Integer.parseInt(statNum) >= 1 && Integer.parseInt(statNum) <= 38) {
+                    	if (Integer.parseInt(statNum) >= 1 && Integer.parseInt(statNum) <= 46) {
                         	boolean validPlayers = false;
                         	while (!validPlayers) {
                             	System.out.println("How many players do you want to see in this stat ranking?");
@@ -314,7 +378,7 @@ public class App {
                 }
                 
                 else if (index.equals("8")) {
-                	System.out.println("What Player would you like to search for? (Type L to leave)");
+                	System.out.println("What player or keyword would you like to search for? (Type L to leave)");
                 	System.out.print("Player Name: ");
                 	String playerName = scan.nextLine();
                 	if (playerName.toUpperCase().equals("L")) {
@@ -322,8 +386,47 @@ public class App {
                 		break;
                 	}
                 	else {
-                		HighestStatTracker.printPlayerTournamentHighStats(playerName);
                 		
+                		Map<Integer, String> choosePlayer = new HashMap<>();
+                		if (playerName.length() >= 3) {
+                			int playerIndex = 1;
+                    		for (String player : RankAnalyzer.playerNames) {
+                    			if (player.toLowerCase().contains(playerName.toLowerCase())) {
+                    				choosePlayer.put(playerIndex, player);
+                    				playerIndex++;
+                    			}
+                    		}
+                    		if (!choosePlayer.isEmpty()) {
+                    			boolean loop = false;
+                    			while (!loop) {
+                        			System.out.println("Please Choose which player you are looking for: ");
+                        			for (int integer : choosePlayer.keySet()) {
+                        				System.out.println("[" + integer + "]" + " " + choosePlayer.get(integer));
+                        			}
+                        			String choosePlayerIndex = scan.nextLine();
+                        			
+                        			if (isPositiveInteger(choosePlayerIndex)) {
+                        				if (Integer.parseInt(choosePlayerIndex) > 0 && Integer.parseInt(choosePlayerIndex) <= choosePlayer.size()) {
+                        					String choosePlayerName = choosePlayer.get(Integer.parseInt(choosePlayerIndex));
+                        					HighestStatTracker.printPlayerTournamentHighStats(choosePlayerName);
+                        					loop = true;
+                        				}
+                            			else {
+                            				System.out.println("Not an answer above, please try again.");
+                            			}
+                        			}
+                        			else {
+                        				System.out.println("Not an answer above, please try again.");
+                        			}
+                    			}	
+                    		}
+                    		else {
+                    			System.out.println("Player(s) does not exist, please try again.");
+                    		}
+                		}
+                		else {
+                			System.out.println("player or keyword has to be at least 3 characters");
+                		}		
                 	}
                 }
                 
@@ -383,19 +486,126 @@ public class App {
                 	System.out.println("------------------------------------------------------------------");
                 	System.out.println("\t\t     Players of each Round:");
                 	for (int i = 1; i <= 9; i++) {
-                		String string = "To Be Determined";
+                		String string = "\t\t  To Be Determined";
                 		if (!playerOfTheRoundAnalyzer.calculatePlayerOfTheRound(i).isEmpty()) {
                 			string = playerOfTheRoundAnalyzer.calculatePlayerOfTheRound(i).get(0);
                 			
                 		}
                 		
                         	System.out.println("Round " + i + ": " + string + ((!playerOfTheRoundAnalyzer.calculatePlayerOfTheRound(i).isEmpty()) ? ", POGs: " + 
-                        		PlayerOfTheRoundAnalyzer.POTRPOGSMap.get(string) + ", Team Wins: " + 
+                        		PlayerOfTheRoundAnalyzer.POTRPOGSMap.get(string) + ", " + RankAnalyzer.playerTeams.get(string) + ", Wins: " + 
                         		PlayerOfTheRoundAnalyzer.teamWinsForPOTRMap.get(string) + ", Player Score: " + new DecimalFormat("0.00").format(PlayerOfTheRoundAnalyzer.playerScoreForPOTRMap.get(string)) : ""));
-
+                        	 if (!string.equals("\t\t  To Be Determined")) {
+                        		 int gamesPerRound = 5;
+                        	     int start = (i - 1) * gamesPerRound;
+                        	     int end = start + gamesPerRound;
+                        		 StatsPrinter.printPlayerStats(string,playerMap,start,end, false, true);
+                        	 }
+                        	
                 	}
                 	System.out.println("------------------------------------------------------------------");
                 	validIndex = true;
+                }
+                
+                else if (index.equals("13")) {
+                	System.out.println("------------------------------------------------------------------");
+                	System.out.println("\t\t     Best Players of each Round:");
+                	int gamesPerRound = 5;
+                	for (int i = 1; i <= 9; i++) {
+                		String string = "\tTo Be Determined";
+                		System.out.print("Round " + i  + ": ");
+                		if (!playerOfTheRoundAnalyzer.calculatePlayerOfTheRound(i).isEmpty()) {
+                			System.out.print("\n");
+                    		for (String playerName : playerOfTheRoundAnalyzer.topPlayersForRound.get(i).keySet()) {
+                    			
+                    			System.out.println(playerName  + ", Player Score: " + new DecimalFormat("0.00").format(playerOfTheRoundAnalyzer.topPlayersForRound.get(i).get(playerName)) +
+                    					  ", "  + RankAnalyzer.playerTeams.get(playerName));
+                    		 
+                       	     int start = (i - 1) * gamesPerRound;
+                       	     int end = start + gamesPerRound;
+                       		 StatsPrinter.printPlayerStats(playerName,playerMap,start,end, false, true);
+                    		}
+                    		System.out.println("\n");
+                		}
+                		else {
+                			System.out.print(string + "\n");
+                		}
+                	}
+                	System.out.println("------------------------------------------------------------------");
+                	validIndex = true;
+                }
+                else if (index.equals("14")) {
+                    int week = 0;
+
+
+                    for (GameRecord game : analyzer.sortedGames) {
+                        int gameWeek = game.gameNumber; // Calculate week number
+                        if (gameWeek > week) {
+                        	week = gameWeek;
+                        	System.out.println("[" + week  + "] Week " + week);
+                        }
+                    }
+                    System.out.println("[L] Leave");
+                    System.out.println("\nEnter the week number to view games (press L to leave): ");
+                    String weekNumber = scan.nextLine();
+                    
+                    if (isPositiveInteger(weekNumber)) {
+                    	if (Integer.parseInt(weekNumber) > 0 && Integer.parseInt(weekNumber) <= week) {
+                    		Map <Integer, GameRecord> gamesForWeek = new HashMap<>(analyzer.gamesForWeek(Integer.parseInt(weekNumber)));
+                    		boolean loop = false;
+                    		while (!loop) {
+                    			
+                                System.out.println("\nGames for Week " + weekNumber + ":");
+                                for (int i : gamesForWeek.keySet()) {
+                                	GameRecord game = gamesForWeek.get(i);
+                                    System.out.println("[" + i + "] " + (game.isHomeGame ? game.opponent + " vs " +  game.team :  game.team + " vs " +  game.opponent));
+                                }
+                                System.out.println("[L] Leave\n");
+                                
+                                System.out.println("\nWhat Game would you like to look at? (press L to leave):");
+                                String game = scan.nextLine();
+                                if(isPositiveInteger(game)) {
+                                	if (Integer.parseInt(game) > 0 && Integer.parseInt(game) <= gamesForWeek.size()) {
+                                		int gameNum = Integer.parseInt(game);
+                                		GameRecord gameRecord = gamesForWeek.get(gameNum);
+                                		boolean isHome = gameRecord.isHomeGame;
+                                		String teamName = gameRecord.team;
+                                		String opponentName = gameRecord.opponent;
+                                		int teamScore = gameRecord.teamScore;
+                                		int opponentScore = gameRecord.opponentScore;
+                                		HighestStatTracker.printHeadToHeadGameInfo(Integer.parseInt(weekNumber), 
+                                				isHome ? opponentName : teamName,
+                                						isHome ? teamName : opponentName, 
+                                						isHome ? opponentScore : teamScore, 
+                                						isHome ? teamScore : opponentScore);
+                                	}
+                                	else {
+                                		System.out.println("Not an option, please try again.");
+                                	}
+                                }
+                                else if (game.toUpperCase().equals("L")) {
+                                	loop = true;
+                                }
+                                else {
+                                	System.out.println("Not an option, please try again.");
+                                }
+                                
+                    		}
+                            
+
+                    	}
+                    	else {
+                    		System.out.println("Not an option, please try again.");
+                    	}
+                    	
+                    }
+                    else if (weekNumber.toUpperCase().equals("L")) {
+                    	validIndex = true;
+                    }
+                    else {
+                    	System.out.println("Not an option, please try again.");
+                    }
+
                 }
                 
                 else if (index.toUpperCase().equals("L")) {
@@ -418,11 +628,21 @@ public class App {
     public static boolean isPositiveInteger(String s) {
         try {
         	int num = Integer.parseInt(s);
-        	System.out.println(num);
-        	
             return num > 0;
         } catch (NumberFormatException e) {
             return false;
         }
+    }
+    public static boolean containsValueIgnoreCase(Map<Integer, String> map, String valueToFind) {
+        return map.values().stream()
+                   .anyMatch(value -> value.equalsIgnoreCase(valueToFind));
+    }
+    public static String findValueIgnoreCase(Map<Integer, String> map, String valueToFind) {
+        for (String value : map.values()) {
+            if (value.equalsIgnoreCase(valueToFind)) {
+                return value; // Return the actual value from the map
+            }
+        }
+        return null; // Return null if no matching value is found
     }
 }

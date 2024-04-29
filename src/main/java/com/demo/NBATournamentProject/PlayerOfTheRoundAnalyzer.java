@@ -8,6 +8,7 @@ public class PlayerOfTheRoundAnalyzer {
     public static Map<String, Integer> teamWinsForPOTRMap = new HashMap<>();
     public static Map<String, Double> playerScoreForPOTRMap = new HashMap<>();
     public static Map<String, Integer> POTRPOGSMap = new HashMap<>();
+    Map<Integer, Map<String,Double>> topPlayersForRound = new HashMap<>();
 
     public PlayerOfTheRoundAnalyzer(Map<String, List<Map<String, List<Map<String, String>>>>> playerStatsMap) {
         this.playerStatsMap = playerStatsMap;
@@ -50,8 +51,7 @@ public class PlayerOfTheRoundAnalyzer {
         // Player scores need to be calculated and filled into playerScores map
         // This step is crucial and should be done based on the specific round's performance
         Map<String, Double> playerScores = calculatePlayerScoresForRound(round);
-        
-        
+
 
         // Filter candidates based on POGs
         List<String> candidates = determinePlayersOfTheRound(pogsPerPlayer, teamWins);
@@ -59,6 +59,21 @@ public class PlayerOfTheRoundAnalyzer {
         // Final tiebreaker based on player scores
         
         if (!candidates.isEmpty()) {
+
+            	playerScores = RankAnalyzer.sortByBigValue(playerScores);
+            	 Map<String, Double> topPlayers = new HashMap<>();
+            	 
+                
+                int i = 0;
+                for (String playerName : playerScores.keySet()) {
+                	if (i < 5) {
+                		topPlayers.put(playerName, playerScores.get(playerName));
+                	}
+                	i++; 	
+                }
+                
+                topPlayersForRound.put(round, topPlayers);
+
             if (candidates.size() > 1) {
             	candidates = breakTieWithPlayerScores(candidates, playerScores);
             }
@@ -83,13 +98,6 @@ public class PlayerOfTheRoundAnalyzer {
                 }
             });
 
-            if (candidates.size() > 1) {
-                int maxWins = candidates.stream()
-                                        .mapToInt(player -> teamWins.getOrDefault(RankAnalyzer.playerTeams.get(player), 0))
-                                        .max()
-                                        .orElse(0);
-                candidates.removeIf(player -> teamWins.getOrDefault(RankAnalyzer.playerTeams.get(player), 0) < maxWins);
-            }
             
             
 
@@ -124,12 +132,12 @@ public class PlayerOfTheRoundAnalyzer {
 
         Map<String, Double> playerScoresForRound = new HashMap<>();
         // Assuming weights are predefined or calculated elsewhere
-        double weightKeyStats = 1.0; // for REB, AST, STL, BLK
-        double weightNegative = 0.5; // for TO, FLS
-        double weightEfficiency = 0.75; // for FG%, 3P%, FT%
-        double weightPRF = 1.2;
-        double weightGS = 1.5;
-        double weightPOG = 2.5;
+	    double weightPOG = 50.0; // Weight for Player of the Game
+	    double weightPRF = 0.8; // Weight for Points Responsible For
+	    double weightKeyStats = 1.1; // Slightly higher weight for rebounds, assists, etc.
+	    double weightGS = 1.5;  // Weight for Game Score
+	    double weightEfficiency = 20.0; // Weight for efficiency metrics (FG%, 3PT%, FT%)
+	    double weightNegative = 2.2; // Weight for turnovers and fouls
         
         
         double pts = 0,reb = 0,ast = 0,stl = 0,blk = 0,to = 0,fls = 0,fgm = 0,fga = 0,threepm = 0,threepa = 0,ftm = 0,fta = 0,prf = 0,oreb = 0,pog = 0, plusminus = 0;
@@ -171,32 +179,34 @@ public class PlayerOfTheRoundAnalyzer {
 
 
                     }
-                    double fgPercent = (fga > 0) ? (fgm / fga) * 100.0 : 0.0;
-                    double threePercent = (threepa > 0) ? (threepm / threepa) * 100.0 : 0;
-                    double ftPercent = (fta > 0) ? (ftm / fta) * 100.0 : 0.0;
+                    double fgPercent = (fga > 0) ? (fgm / fga) : 0.0;
+                    double threePercent = (threepa > 0) ? (threepm / threepa): 0.0;
+                    double ftPercent = (fta > 0) ? (ftm / fta) : 0.0;
                     double gamesCounted = (double) Math.min(gameStatsList.size() - startGameIndex, gamesPerRound);
                     double gs = (double)(pts+0.4*fgm-0.7*fga-0.4*(fta-ftm)+0.7*oreb+0.3*(reb-oreb)+stl+ast*0.7+0.7*blk-0.4*fls-to)/gamesCounted;
-
                     // Normalize the score by the number of games to average it
                     
                     // Score calculation with efficiency
                     double score = (double)pts;
-                    score+= (double)((reb + ast + stl + blk) * weightKeyStats); 
+                    score+= (double)((reb*1.2 + ast*1.5 + stl*3 + blk*3) * weightKeyStats); 
                     score -= (double)((to + fls) * weightNegative);
-                    score += (double)fgPercent * weightEfficiency;
-                    score += (double)threePercent * weightEfficiency;
-                    score += (double)ftPercent * weightEfficiency;
-                    score += (double)(gs * weightGS); 
-                    score += (double)(prf * weightPRF);
-                    score += (double)(oreb* 1.2); 
-                    score +=  (double)plusminus;
+                    score -= (double)(fgPercent + threePercent + ftPercent*0.44) * weightEfficiency;
                     score += (double)pog * weightPOG;
+                    score += (double)prf * weightPRF;
+                    score += (double)gs * weightGS; 
 
                     
-                    
-                    
-                    double averageScore = (gamesCounted > 0) ? (double)score / gamesCounted : 0;
-                    playerScoresForRound.put(playerName, averageScore);
+                    score += (double)(oreb* 1.2); 
+                    score +=  (double)plusminus*0.7;
+                    if (gamesCounted > 0) {
+                    	score /= (double)gamesCounted;
+                    }
+                    else {
+                    	score = 0;
+                    }
+
+
+                    playerScoresForRound.put(playerName, score);
                     
                     pts = 0;
                     reb = 0;
